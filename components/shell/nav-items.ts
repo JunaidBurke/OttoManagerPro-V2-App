@@ -25,6 +25,12 @@ export const NAV_ITEMS: ReadonlyArray<NavItem> = [
     subtitle: "Mileage and service timeline"
   },
   {
+    href: "/inventory",
+    label: "Inventory",
+    shortLabel: "Stock",
+    subtitle: "Tire stock, size, and pricing"
+  },
+  {
     href: "/reminders",
     label: "Reminders",
     shortLabel: "Reminders",

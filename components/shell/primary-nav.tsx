@@ -22,7 +22,7 @@ export function PrimaryNav({ mode }: PrimaryNavProps) {
 
   if (mode === "mobile") {
     return (
-      <nav aria-label="Primary" className="grid grid-cols-4 gap-2">
+      <nav aria-label="Primary" className="grid grid-cols-5 gap-2">
         {NAV_ITEMS.map((item) => {
           const active = isActivePath(pathname, item.href);
 
