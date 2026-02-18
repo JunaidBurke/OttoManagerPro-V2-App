@@ -7,6 +7,27 @@ const KPI_CARDS = [
   { label: "Overdue", value: "0", tone: "text-red-700" }
 ] as const;
 
+const DASHBOARD_EMPTY_STATES = [
+  {
+    title: "No locations configured",
+    description:
+      "Create your first shop location to scope inventory, reminders, and daily operations.",
+    actionLabel: "Create Location (Soon)"
+  },
+  {
+    title: "No customers yet",
+    description:
+      "Add customers as they call or walk in so vehicle history and reminders can start building.",
+    actionLabel: "Add Customer (Soon)"
+  },
+  {
+    title: "No jobs scheduled today",
+    description:
+      "Today's queue will appear here as appointments or walk-ins are added at the front desk.",
+    actionLabel: "Start Walk-In (Soon)"
+  }
+] as const;
+
 export default function HomePage() {
   return (
     <PageFrame
@@ -22,6 +43,25 @@ export default function HomePage() {
             <p className="text-sm text-slate-600">{card.label}</p>
             <p className={`mt-3 text-3xl font-semibold tracking-tight ${card.tone}`}>{card.value}</p>
           </article>
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        {DASHBOARD_EMPTY_STATES.map((state) => (
+          <section
+            key={state.title}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">{state.title}</h2>
+            <p className="mt-1 text-sm text-slate-600">{state.description}</p>
+            <div className="mt-4">
+              <EmptyStateCard
+                title={state.title}
+                description={state.description}
+                actionLabel={state.actionLabel}
+              />
+            </div>
+          </section>
         ))}
       </div>
 
