@@ -11,6 +11,7 @@ model Organization {
   id        String     @id
   name      String
   locations Location[]
+  customers Customer[]
   inventoryItems InventoryItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -56,4 +57,21 @@ model InventoryItem {
   @@index([organizationId])
   @@index([organizationId, locationId])
   @@map("inventory_items")
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  name           String
+  phone          String
+  phoneDigits    String
+  lastVisitAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, phoneDigits])
+  @@index([organizationId, phoneDigits])
+  @@index([organizationId, name])
+  @@map("customers")
 }
