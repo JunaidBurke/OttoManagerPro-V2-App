@@ -11,6 +11,7 @@ model Organization {
   id        String     @id
   name      String
   locations Location[]
+  inventoryItems InventoryItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -21,6 +22,7 @@ model Location {
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  inventoryItems InventoryItem[]
   name           String
   address        String?
   isActive       Boolean      @default(true)
@@ -30,4 +32,28 @@ model Location {
   @@unique([organizationId, name])
   @@index([organizationId])
   @@map("locations")
+}
+
+enum InventoryCondition {
+  NEW
+  USED
+}
+
+model InventoryItem {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  locationId     String
+  location       Location           @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  item           String
+  condition      InventoryCondition
+  size           String
+  priceCents     Int
+  qty            Int
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, locationId])
+  @@map("inventory_items")
 }

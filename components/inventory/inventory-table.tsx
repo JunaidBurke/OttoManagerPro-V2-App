@@ -1,57 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useFormStatus } from "react-dom";
+import { createInventoryQuickAddAction } from "@/app/actions/inventory";
+import {
+  QUICK_ADD_INVENTORY_INITIAL_STATE,
+  type QuickAddInventoryFormState
+} from "@/lib/inventory/quick-add";
+import type { InventoryListItem } from "@/lib/inventory/types";
 import { cn } from "@/lib/utils";
 
-type InventoryRow = {
-  id: string;
-  item: string;
-  condition: "New" | "Used";
-  size: string;
-  price: number;
-  qty: number;
+type InventoryTableProps = {
+  rows: InventoryListItem[];
+  activeLocationName: string;
 };
-
-const INVENTORY_ROWS: InventoryRow[] = [
-  {
-    id: "inv_1",
-    item: "Michelin Defender 2",
-    condition: "New",
-    size: "205/55R16",
-    price: 139.99,
-    qty: 12
-  },
-  {
-    id: "inv_2",
-    item: "Goodyear Assurance All-Season",
-    condition: "New",
-    size: "225/60R17",
-    price: 154.5,
-    qty: 8
-  },
-  {
-    id: "inv_3",
-    item: "Bridgestone Turanza QuietTrack",
-    condition: "Used",
-    size: "215/55R17",
-    price: 94,
-    qty: 3
-  },
-  {
-    id: "inv_4",
-    item: "Pirelli Scorpion AS Plus 3",
-    condition: "New",
-    size: "235/65R18",
-    price: 179,
-    qty: 5
-  }
-];
 
 function formatPrice(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
-function matchRow(row: InventoryRow, query: string): boolean {
+function matchRow(row: InventoryListItem, query: string): boolean {
   const normalizedQuery = query.trim().toLowerCase();
   if (normalizedQuery.length === 0) {
     return true;
@@ -64,36 +33,186 @@ function matchRow(row: InventoryRow, query: string): boolean {
   );
 }
 
-export function InventoryTable() {
+function FieldError({ message }: { message?: string }) {
+  if (!message) {
+    return null;
+  }
+
+  return <p className="mt-1 text-xs text-red-700">{message}</p>;
+}
+
+function QuickAddSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={cn(
+        "inline-flex h-10 items-center justify-center rounded-xl border px-4 text-sm font-medium",
+        pending
+          ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+          : "border-slate-900 bg-slate-900 text-slate-50 hover:bg-slate-800"
+      )}
+    >
+      {pending ? "Adding..." : "Add Inventory"}
+    </button>
+  );
+}
+
+function QuickAddFormFeedback({ state }: { state: QuickAddInventoryFormState }) {
+  if (!state.message) {
+    return null;
+  }
+
+  return (
+    <p
+      className={cn(
+        "text-sm",
+        state.status === "success" ? "text-emerald-700" : "text-red-700"
+      )}
+    >
+      {state.message}
+    </p>
+  );
+}
+
+export function InventoryTable({ rows, activeLocationName }: InventoryTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [formState, formAction] = useActionState(
+    createInventoryQuickAddAction,
+    QUICK_ADD_INVENTORY_INITIAL_STATE
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (formState.status === "success") {
+      formRef.current?.reset();
+      router.refresh();
+    }
+  }, [formState.status, router]);
 
   const filteredRows = useMemo(
-    () => INVENTORY_ROWS.filter((row) => matchRow(row, searchQuery)),
-    [searchQuery]
+    () => rows.filter((row) => matchRow(row, searchQuery)),
+    [rows, searchQuery]
   );
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Inventory List</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Search by tire name, condition, or size for quick front-desk lookup.
-          </p>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-semibold text-slate-900">Inventory List</h2>
+        <p className="text-sm text-slate-600">
+          Search by tire name, condition, or size for quick front-desk lookup.
+        </p>
+        <p className="text-xs font-semibold tracking-[0.04em] text-slate-500">
+          ACTIVE LOCATION: {activeLocationName}
+        </p>
+      </div>
+
+      <form ref={formRef} action={formAction} className="mt-5 space-y-3 rounded-xl border border-slate-200 p-3">
+        <div className="grid gap-3 lg:grid-cols-5">
+          <div>
+            <label htmlFor="quick-add-item" className="text-xs font-semibold text-slate-700">
+              Item
+            </label>
+            <input
+              id="quick-add-item"
+              name="item"
+              type="text"
+              placeholder="Michelin Defender 2"
+              className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none ring-offset-2 placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
+              aria-invalid={formState.fieldErrors.item ? true : undefined}
+            />
+            <FieldError message={formState.fieldErrors.item} />
+          </div>
+
+          <div>
+            <label htmlFor="quick-add-condition" className="text-xs font-semibold text-slate-700">
+              Condition
+            </label>
+            <select
+              id="quick-add-condition"
+              name="condition"
+              defaultValue="New"
+              className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-offset-2 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
+              aria-invalid={formState.fieldErrors.condition ? true : undefined}
+            >
+              <option value="New">New</option>
+              <option value="Used">Used</option>
+            </select>
+            <FieldError message={formState.fieldErrors.condition} />
+          </div>
+
+          <div>
+            <label htmlFor="quick-add-size" className="text-xs font-semibold text-slate-700">
+              Size
+            </label>
+            <input
+              id="quick-add-size"
+              name="size"
+              type="text"
+              placeholder="205/55R16"
+              className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none ring-offset-2 placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
+              aria-invalid={formState.fieldErrors.size ? true : undefined}
+            />
+            <FieldError message={formState.fieldErrors.size} />
+          </div>
+
+          <div>
+            <label htmlFor="quick-add-price" className="text-xs font-semibold text-slate-700">
+              Price
+            </label>
+            <input
+              id="quick-add-price"
+              name="price"
+              type="number"
+              min="0.01"
+              max="999999.99"
+              step="0.01"
+              placeholder="139.99"
+              className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none ring-offset-2 placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
+              aria-invalid={formState.fieldErrors.price ? true : undefined}
+            />
+            <FieldError message={formState.fieldErrors.price} />
+          </div>
+
+          <div>
+            <label htmlFor="quick-add-qty" className="text-xs font-semibold text-slate-700">
+              Qty
+            </label>
+            <input
+              id="quick-add-qty"
+              name="qty"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="12"
+              className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none ring-offset-2 placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
+              aria-invalid={formState.fieldErrors.qty ? true : undefined}
+            />
+            <FieldError message={formState.fieldErrors.qty} />
+          </div>
         </div>
-        <div className="w-full sm:w-72">
-          <label htmlFor="inventory-search" className="sr-only">
-            Search inventory
-          </label>
-          <input
-            id="inventory-search"
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search item, condition, or size..."
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none ring-offset-2 placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
-          />
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <QuickAddSubmitButton />
+          <QuickAddFormFeedback state={formState} />
         </div>
+      </form>
+
+      <div className="mt-5 w-full sm:w-72">
+        <label htmlFor="inventory-search" className="sr-only">
+          Search inventory
+        </label>
+        <input
+          id="inventory-search"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search item, condition, or size..."
+          className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none ring-offset-2 placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-300"
+        />
       </div>
 
       {filteredRows.length === 0 ? (
@@ -102,12 +221,6 @@ export function InventoryTable() {
           <p className="mx-auto mt-2 max-w-lg text-sm text-slate-600">
             Try a different search term or add tire inventory to this location.
           </p>
-          <button
-            type="button"
-            className="mt-4 inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          >
-            Add Inventory (Soon)
-          </button>
         </div>
       ) : (
         <>

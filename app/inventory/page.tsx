@@ -1,4 +1,6 @@
-import { InventoryTable } from "@/components/inventory/inventory-table";
+import { Suspense } from "react";
+import { InventoryPanel } from "@/components/inventory/inventory-panel";
+import { InventoryPanelSkeleton } from "@/components/inventory/inventory-panel-skeleton";
 import { PageFrame } from "@/components/shell/page-frame";
 
 export default function InventoryPage() {
@@ -7,7 +9,9 @@ export default function InventoryPage() {
       title="Inventory"
       description="Track tire stock by item, size, condition, and price for fast counter service."
     >
-      <InventoryTable />
+      <Suspense fallback={<InventoryPanelSkeleton />}>
+        <InventoryPanel />
+      </Suspense>
     </PageFrame>
   );
 }
